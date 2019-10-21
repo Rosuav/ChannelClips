@@ -56,10 +56,12 @@ class TextPiece:
 	text: str
 	duration: str
 	def build_video(self):
+		audio = "anullsrc=channel_layout=stereo:sample_rate=44100"
 		bg = "color=c=#00007F:s=1920x1080:d=" + self.duration
 		text = f"drawtext=fontfile={font_file}:fontsize={font_size}:fontcolor=white"
 		text += ":x=(w-text_w)/2:y=(h-text_h)/2:text='%s'" % self.text.replace(r"\n", "\n")
-		cmd = ["ffmpeg", "-f", "lavfi", "-i", bg, "-vf", text, self.fn]
+		cmd = ["ffmpeg", "-f", "lavfi", "-i", audio, "-f", "lavfi", "-i", bg,
+			"-vf", text, "-shortest", "-map", "0:a", "-map", "1:v", self.fn]
 		subprocess.check_call(cmd)
 	def precache(self):
 		self.fn = "cache/text-%s.%s.mkv" % (self.text, self.duration)
@@ -86,12 +88,14 @@ def parse_template(fn):
 
 # 4) Stitch the files together into an output file
 def build_compilation(videos, output):
-	files = "\n".join("file '%s'" % os.path.abspath(v.fn) for v in videos)
-	tmpfn = "filelist.txt"
-	with open(tmpfn, "w") as f: f.write(files)
-	cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", tmpfn, output]
-	subprocess.run(cmd, check=True)
-	os.unlink(tmpfn)
+	cmd = ["ffmpeg", "-y"]
+	filter = ""
+	for i, v in enumerate(videos):
+		cmd += ["-i", v.fn]
+		filter += "[%d:v:0][%d:a:0]" % (i, i)
+	cmd += ["-filter_complex", filter + "concat=n=%d:v=1:a=1[outv][outa]" % len(videos)]
+	cmd += ["-map", "[outv]", "-map", "[outa]", output]
+	subprocess.check_call(cmd)
 
 def main(fn, output):
 	pieces = parse_template(fn)
