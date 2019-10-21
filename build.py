@@ -55,13 +55,16 @@ class VideoPiece:
 class TextPiece:
 	text: str
 	duration: str
-	def precache(self):
-		self.fn = "cache/text-%s.%s.mp4" % (self.text, self.duration)
+	def build_video(self):
 		bg = "color=c=#00007F:s=1920x1080:d=" + self.duration
 		text = f"drawtext=fontfile={font_file}:fontsize={font_size}:fontcolor=white"
 		text += ":x=(w-text_w)/2:y=(h-text_h)/2:text='%s'" % self.text.replace(r"\n", "\n")
 		cmd = ["ffmpeg", "-f", "lavfi", "-i", bg, "-vf", text, self.fn]
 		subprocess.check_call(cmd)
+	def precache(self):
+		self.fn = "cache/text-%s.%s.mkv" % (self.text, self.duration)
+		try: os.stat(self.fn)
+		except FileNotFoundError: self.build_video()
 # TODO: Consider using the FFMPEG 'subtitles' filter to add annotations
 
 def remove_comments(iter):
@@ -83,7 +86,12 @@ def parse_template(fn):
 
 # 4) Stitch the files together into an output file
 def build_compilation(videos, output):
-	...
+	files = "\n".join("file '%s'" % os.path.abspath(v.fn) for v in videos)
+	tmpfn = "filelist.txt"
+	with open(tmpfn, "w") as f: f.write(files)
+	cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", tmpfn, output]
+	subprocess.run(cmd, check=True)
+	os.unlink(tmpfn)
 
 def main(fn, output):
 	pieces = parse_template(fn)
