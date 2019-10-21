@@ -1,0 +1,8 @@
+# URL start-time duration
+# duration 0 ==> till end
+https://clips.twitch.tv/PoorSavageLorisHassaanChop 0 15
+
+# "Text string" duration
+"Welcome to Wonderland. We've had a lot of crazy times..." 10
+
+https://clips.twitch.tv/PreciousGoldenPonyRaccAttack 2 0
