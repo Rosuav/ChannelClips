@@ -10,6 +10,9 @@ import requests # ImportError? pip install requests
 with open("../stillebot/twitchbot_config.json") as f:
 	client_id = json.load(f)["ircsettings"]["clientid"]
 
+font_file = "Sans"
+font_size = 72
+
 @dataclass
 class VideoPiece:
 	slug: str # eg PoorSavageLorisHassaanChop
@@ -33,18 +36,18 @@ class VideoPiece:
 
 	def cut_video(self):
 		# 4) Trim the file to the specified start/dur, save under new name
-		cmd = ["ffmpeg", "-ss", self.start, "-i", self.raw_fn]
+		cmd = ["ffmpeg", "-ss", self.start, "-i", self.fn]
 		if self.duration != "0": cmd += ["-t", self.duration]
-		cmd += ["-c", "copy", self.short_fn]
+		cmd += ["-c", "copy", self.fn]
 		subprocess.check_call(cmd)
 
 	def precache(self):
 		self.slug = self.slug.replace("https://clips.twitch.tv/", "")
 		self.raw_fn = "cache/%s.mp4" % self.slug
-		self.short_fn = "cache/%s-%s-%s.mp4" % (self.slug, self.start, self.duration)
+		self.fn = "cache/%s-%s-%s.mp4" % (self.slug, self.start, self.duration)
 		try: os.stat(self.raw_fn)
 		except FileNotFoundError: self.download_raw()
-		try: os.stat(self.short_fn)
+		try: os.stat(self.fn)
 		except FileNotFoundError: self.cut_video()
 
 @dataclass
@@ -52,7 +55,13 @@ class TextPiece:
 	text: str
 	duration: str
 	def precache(self):
-		...
+		self.fn = "cache/text-%s.%s.mp4" % (self.text, self.duration)
+		bg = "color=c=#00007F:s=1920x1080:d=" + self.duration
+		text = f"drawtext=fontfile={font_file}:fontsize={font_size}:fontcolor=white"
+		text += ":x=(w-text_w)/2:y=(h-text_h)/2:text='%s'" % self.text.replace(r"\n", "\n")
+		cmd = ["ffmpeg", "-f", "lavfi", "-i", bg, "-vf", text, self.fn]
+		subprocess.check_call(cmd)
+# TODO: Consider using the FFMPEG 'subtitles' filter to add annotations
 
 def remove_comments(iter):
 	for line in iter:
