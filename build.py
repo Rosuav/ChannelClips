@@ -1,6 +1,7 @@
 # Build the clips!
 import csv
 import json
+import os
 from dataclasses import dataclass # ImportError? Upgrade to Python 3.7 or pip install dataclasses
 import requests # ImportError? pip install requests
 
@@ -13,17 +14,28 @@ class VideoPiece:
 	slug: str # eg PoorSavageLorisHassaanChop
 	start: float # Start position
 	duration: float # 0.0 = till end of clip
-	def precache(self):
+	def download_raw(self):
 		# 1) Query the Twitch API and find the thumbnail_url
-		# 2) Remove "-preview-" to end of string, add ".mp4"
-		# 3) Download that file, save it
-		# 4) Trim the file to the specified start/dur, save under new name
-		self.slug = self.slug.replace("https://clips.twitch.tv/", "")
 		r = requests.get("https://api.twitch.tv/helix/clips?id=" + self.slug,
 			headers={"Client-ID": client_id},
 		)
 		r.raise_for_status()
-		print(r.json())
+		thumb = r.json()["data"][0]["thumbnail_url"]
+		# 2) Remove "-preview-" to end of string, add ".mp4"
+		video = thumb.split("-preview-")[0] + ".mp4"
+		# 3) Download that file, save it
+		print("Downloading %s..." % self.raw_fn)
+		r = requests.get(video)
+		r.raise_for_status()
+		with open(self.raw_fn, "wb") as f:
+			f.write(r.content)
+	def precache(self):
+		self.slug = self.slug.replace("https://clips.twitch.tv/", "")
+		self.raw_fn = "cache/%s.mp4" % self.slug
+		try: os.stat(self.raw_fn)
+		except FileNotFoundError: self.download_raw()
+		# 4) Trim the file to the specified start/dur, save under new name
+		...
 
 @dataclass
 class TextPiece:
@@ -56,6 +68,8 @@ def build_compilation(videos, output):
 def main(fn, output):
 	pieces = parse_template(fn)
 	print(pieces)
+	try: os.mkdir("cache")
+	except FileExistsError: pass
 	for piece in pieces:
 		piece.precache()
 	build_compilation(pieces, output)
