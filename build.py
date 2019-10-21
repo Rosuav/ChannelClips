@@ -1,6 +1,12 @@
 # Build the clips!
 import csv
+import json
 from dataclasses import dataclass # ImportError? Upgrade to Python 3.7 or pip install dataclasses
+import requests # ImportError? pip install requests
+
+# Lift a client ID from another project. TODO: Allow other sources eg env var
+with open("../stillebot/twitchbot_config.json") as f:
+	client_id = json.load(f)["ircsettings"]["clientid"]
 
 @dataclass
 class VideoPiece:
@@ -8,7 +14,16 @@ class VideoPiece:
 	start: float # Start position
 	duration: float # 0.0 = till end of clip
 	def precache(self):
-		...
+		# 1) Query the Twitch API and find the thumbnail_url
+		# 2) Remove "-preview-" to end of string, add ".mp4"
+		# 3) Download that file, save it
+		# 4) Trim the file to the specified start/dur, save under new name
+		self.slug = self.slug.replace("https://clips.twitch.tv/", "")
+		r = requests.get("https://api.twitch.tv/helix/clips?id=" + self.slug,
+			headers={"Client-ID": client_id},
+		)
+		r.raise_for_status()
+		print(r.json())
 
 @dataclass
 class TextPiece:
