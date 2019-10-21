@@ -7,11 +7,15 @@ class VideoPiece:
 	slug: str # eg PoorSavageLorisHassaanChop
 	start: float # Start position
 	duration: float # 0.0 = till end of clip
+	def precache(self):
+		...
 
 @dataclass
 class TextPiece:
 	text: str
 	duration: float
+	def precache(self):
+		...
 
 def remove_comments(iter):
 	for line in iter:
@@ -27,13 +31,8 @@ def parse_template(fn):
 			else: pieces.append(VideoPiece(line[0], float(line[1]), float(line[2])))
 	return pieces
 
-# 2) Download all clips into the local cache
-def precache(slug):
-	...
-
-# 3) Build images or video files for title cards (and, again, cache)
-def make_title(text):
-	...
+# 2) Download all clips into the local cache - see VideoPiece.precache()
+# 3) Build images or video files for title cards - see TextPiece.precache()
 
 # 4) Stitch the files together into an output file
 def build_compilation(videos, output):
@@ -43,8 +42,7 @@ def main(fn, output):
 	pieces = parse_template(fn)
 	print(pieces)
 	for piece in pieces:
-		if piece is "video": precache(piece)
-		elif piece is "text": make_title(piece)
+		piece.precache()
 	build_compilation(pieces, output)
 
 if __name__ == "__main__":
