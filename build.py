@@ -25,6 +25,7 @@ class VideoPiece:
 		)
 		r.raise_for_status()
 		thumb = r.json()["data"][0]["thumbnail_url"]
+		# TODO: Save ["created_at"] somewhere to automatically date-stamp the clips
 		# 2) Remove "-preview-" to end of string, add ".mp4"
 		video = thumb.split("-preview-")[0] + ".mp4"
 		# 3) Download that file, save it
