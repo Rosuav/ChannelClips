@@ -37,7 +37,7 @@ class VideoPiece:
 
 	def cut_video(self):
 		# 4) Trim the file to the specified start/dur, save under new name
-		cmd = ["ffmpeg", "-ss", self.start, "-i", self.fn]
+		cmd = ["ffmpeg", "-ss", self.start, "-i", self.raw_fn]
 		if self.duration != "0": cmd += ["-t", self.duration]
 		cmd += ["-c", "copy", self.fn]
 		subprocess.check_call(cmd)
